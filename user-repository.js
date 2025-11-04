@@ -13,11 +13,8 @@ const User = Schema('User', {
 export class UserRepository {
   static async create ({ username, password }) {
     //! Validation
-    if (typeof username !== 'string') throw new Error('Username must be a string')
-    if (username.length < 3) throw new Error('Username must be at least 3 characters long')
-
-    if (typeof password !== 'string') throw new Error('Password must be a string')
-    if (password.length < 6) throw new Error('Password must be at least 6 characters long')
+    Validation.username(username)
+    Validation.password(password)
 
     //! Dont exist user with same username
     const user = User.findOne({ username })
@@ -36,5 +33,30 @@ export class UserRepository {
     return id
   }
 
-  static login ({ username, password }) {}
+  static async login ({ username, password }) {
+    Validation.username(username)
+    Validation.password(password)
+
+    const user = User.findOne({ username })
+    if (!user) throw new Error('Invalid username')
+
+    const isValid = await bcrypt.compareSync(password, user.password)
+    if (!isValid) throw new Error('Invalid password')
+
+    const { password: _, ...publicUser } = user
+
+    return publicUser
+  }
+}
+
+class Validation {
+  static username (username) {
+    if (typeof username !== 'string') throw new Error('Username must be a string')
+    if (username.length < 3) throw new Error('Username must be at least 3 characters long')
+  }
+
+  static password (password) {
+    if (typeof password !== 'string') throw new Error('Password must be a string')
+    if (password.length < 6) throw new Error('Password must be at least 6 characters long')
+  }
 }
